@@ -3,5 +3,5 @@ db_config = {
     'user': 'root',
     'password': '',  # si tienes contraseña, ponla aquí
     'database': 'eps_salud_universal',
-    'port': 3306
+    'port': 3307
 }

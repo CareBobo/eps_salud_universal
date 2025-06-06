@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Paciente Dashboard - EPS Salud Universal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+      body {
+        background-color: #121212;
+        color: #fff;
+      }
+      .sidebar {
+        background-color: #1f1f1f;
+      }
+      .sidebar a,
+      .navbar .nav-link,
+      .navbar a.p-3 {
+        color: rgb(228, 228, 228) !important;
+        text-decoration: none;
+        font-size: 1.2rem;
+        font-weight: bold;
+        text-shadow: 0 0 5px #ffffff, 0 0 10px #ffffff, 0 0 20px #ffffff;
+        transition: all 0.3s ease;
+      }
+      .sidebar a:hover,
+      .navbar .nav-link:hover,
+      .navbar a.p-3:hover {
+        color: white !important;
+        text-shadow: 0 0 10px #39ff14, 0 0 20px #39ff14, 0 0 30px #39ff14;
+      }
+      .content-section {
+        display: none;
+      }
+      .content-section.active {
+        display: block;
+      }
+      .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+      }
+      /* Para listas y resultados */
+      #listaHistoriaClinica li {
+        white-space: pre-wrap;
+        background: #222;
+        margin-bottom: 8px;
+        padding: 8px;
+        border-radius: 6px;
+        color: #fff !important;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- navbar común -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3">
+      <h3 class="text-center py-3 border-bottom border-secondary flex-grow-1">Dashboard - EPS Salud Universal</h3>
+
+      <!-- Mostrar solo si es paciente o admin -->
+      {% if role in ['paciente', 'admin'] %}
+        <a href="#" onclick="showSection('citas')" class="p-3 nav-link" data-section="citas">Mis Citas</a>
+        <a href="#" onclick="showSection('agendarCita')" class="p-3 nav-link" data-section="agendarCita">Agendar Cita</a>
+        <a href="#" onclick="showSection('historiaClinica')" class="p-3 nav-link" data-section="historiaClinica">Historia Clínica</a>
+      {% endif %}
+
+      <a href="{{ url_for('logout') }}" class="btn btn-danger mt-auto mx-3 mb-3">Cerrar Sesión</a>
+    </nav>
+
+    <main class="flex-grow-1 p-4" style="min-height: 100vh; overflow-y:auto;">
+      <!-- Secciones -->
+
+      <!-- Mis Citas -->
+      <section id="citas" class="content-section">
+        <h2>Mis Citas</h2>
+        <button class="btn btn-primary mb-3" onclick="fetchCitas()">Cargar Citas</button>
+        <ul class="list-group" id="citaList"></ul>
+      </section>
+
+      <!-- Agendar / Actualizar Cita -->
+      <section id="agendarCita" class="content-section">
+        <h2>Agendar Cita</h2>
+        <form id="formCita">
+          <input type="hidden" id="citaId" value="" />
+          <input type="hidden" id="userIdHidden" value="{{ user_id }}" />
+          <div class="mb-3">
+            <label for="idDoctor" class="form-label">ID Doctor</label>
+            <input type="number" id="idDoctor" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="idUnidad" class="form-label">ID Unidad</label>
+            <input type="number" id="idUnidad" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="fechaCita" class="form-label">Fecha Cita</label>
+            <input type="date" id="fechaCita" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="horaCita" class="form-label">Hora Cita</label>
+            <input type="time" id="horaCita" class="form-control" required />
+          </div>
+          <button type="submit" class="btn btn-success">Guardar Cita</button>
+          <button type="button" id="cancelUpdateCita" class="btn btn-secondary ms-2" style="display:none;">Cancelar</button>
+          <p id="mensajeCita" class="mt-2"></p>
+        </form>
+      </section>
+
+      <!-- Historia Clínica -->
+      <section id="historiaClinica" class="content-section">
+        <h2>Historia Clínica</h2>
+        <form id="formHistoriaClinica" class="mb-3">
+          <div class="mb-3">
+            <label for="historiaPacienteId" class="form-label">ID Paciente</label>
+            <input type="number" id="historiaPacienteId" class="form-control" required value="{{ user_id }}" />
+          </div>
+          <button type="submit" class="btn btn-primary">Consultar Historia Clínica</button>
+        </form>
+        <ul class="list-group" id="listaHistoriaClinica"></ul>
+      </section>
+
+      <!-- Carrusel -->
+      <div id="carouselEPS" class="carousel slide mb-5" data-bs-ride="carousel">
+        <div class="carousel-inner">
+          <div class="carousel-item active">
+            <img src="{{ url_for('static', filename='imagenes/carrusel1.webp') }}" class="d-block w-100 carousel-img" alt="EPS 1" />
+          </div>
+          <div class="carousel-item">
+            <img src="{{ url_for('static', filename='imagenes/carrusel2.webp') }}" class="d-block w-100 carousel-img" alt="EPS 2" />
+          </div>
+          <div class="carousel-item">
+            <img src="{{ url_for('static', filename='imagenes/carrusel3.webp') }}" class="d-block w-100 carousel-img" alt="EPS 3" />
+          </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#carouselEPS" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
+        <button class="carousel-control-next" type="button" data-bs-target="#carouselEPS" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
+      </div>
+
+      <!-- Textos extra -->
+      <div class="text-section">
+        <h2>Nuestra Misión</h2>
+        <p>Brindar servicios de salud integrales con calidad, eficiencia y calidez humana, comprometidos con el bienestar de nuestros usuarios.</p>
+
+        <h2 class="mt-4">Visión</h2>
+        <p>Ser la EPS líder en atención médica en el país, reconocida por su excelencia en el servicio y el compromiso con la salud de la comunidad.</p>
+      </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+
+    <script>
+      // Consultar historia clínica con fetch
+      document.getElementById('formHistoriaClinica').addEventListener('submit', async function (e) {
+        e.preventDefault()
+        const idPaciente = document.getElementById('historiaPacienteId').value
+        const lista = document.getElementById('listaHistoriaClinica')
+        lista.innerHTML = ''
+        try {
+          const res = await fetch(`/historias/${idPaciente}`, {
+            credentials: 'include' // Importante para mantener la sesión
+          })
+          if (!res.ok) {
+            lista.innerHTML = '<li class="list-group-item bg-danger text-white">No se encontró historia clínica para este paciente o error en la consulta.</li>'
+            return
+          }
+          const data = await res.json()
+          if (!data || data.length === 0) {
+            lista.innerHTML = '<li class="list-group-item bg-warning text-dark">No hay registros de historia clínica.</li>'
+            return
+          }
+          // Suponiendo data es un array de objetos con detalles, los mostramos en lista
+          data.forEach((item) => {
+            const li = document.createElement('li')
+            li.textContent = `Fecha: ${item.fecha_atencion} | Síntomas: ${item.sintomas} | Tratamiento: ${item.tratamiento}`
+            lista.appendChild(li)
+          })
+        } catch (error) {
+          lista.innerHTML = '<li class="list-group-item bg-danger text-white">Error al consultar historia clínica.</li>'
+          console.error(error)
+        }
+      })
+    </script>
+  </body>
+</html>

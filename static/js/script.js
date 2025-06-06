@@ -1,79 +1,194 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Mostrar solo la sección seleccionada y ocultar las demás
-    function showSection(sectionId) {
-        document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none'); 
-        document.getElementById(sectionId).style.display = 'block';
+    // Variables para controlar sesión y tipo de usuario
+    let usuarioTipo = null; // 'doctor' o 'paciente'
+    let usuarioId = null;
+
+    // Referencias a elementos importantes
+    const loginSection = document.getElementById('loginSection');
+    const mainContent = document.querySelector('main');
+    const sidebarLinks = document.querySelectorAll('.sidebar a');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Oculta todo excepto login al inicio
+    function iniciarSesion() {
+        loginSection.style.display = 'block';
+        mainContent.style.display = 'none';
+        sidebarLinks.forEach(link => link.style.display = 'none');
+        if (logoutBtn) logoutBtn.style.display = 'none';
     }
 
-    // Cargar lista de doctores
+    // Mostrar sección y ocultar otras
+    function showSection(sectionId) {
+        document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
+        const seccion = document.getElementById(sectionId);
+        if (seccion) seccion.style.display = 'block';
+    }
+
+    // Mostrar menú lateral con opciones según tipo usuario
+    function mostrarMenuSegunUsuario() {
+        loginSection.style.display = 'none';
+        mainContent.style.display = 'block';
+        if (logoutBtn) logoutBtn.style.display = 'inline-block';
+
+        sidebarLinks.forEach(link => link.style.display = 'none'); // ocultar todas
+
+        if (usuarioTipo === 'doctor') {
+            // Opciones permitidas para doctor
+            const idsPermitidos = [
+                'doctores', 'pacientes', 'citas', 'consultas', 'unidades',
+                'agregarCita', 'agregarConsulta', 'consultarCitasDoctor', 'historiaClinica'
+            ];
+            sidebarLinks.forEach(link => {
+                if (idsPermitidos.includes(link.getAttribute('onclick').match(/'([^']+)'/)[1])) {
+                    link.style.display = 'block';
+                }
+            });
+            showSection('doctores'); // sección inicial para doctor
+        } else if (usuarioTipo === 'paciente') {
+            // Opciones permitidas para paciente
+            const idsPermitidos = [
+                'pacientes', 'citas', 'consultarCitasDoctor', 'historiaClinica'
+            ];
+            sidebarLinks.forEach(link => {
+                if (idsPermitidos.includes(link.getAttribute('onclick').match(/'([^']+)'/)[1])) {
+                    link.style.display = 'block';
+                }
+            });
+            showSection('pacientes'); // sección inicial para paciente
+        }
+    }
+
+    // Manejar el submit del formulario login
+    const formLogin = document.getElementById('formLogin');
+    const loginMensaje = document.getElementById('loginMensaje');
+    formLogin.addEventListener('submit', e => {
+        e.preventDefault();
+
+        const tipo = document.getElementById('loginTipo').value; // 'doctor' o 'paciente'
+        const identificacion = document.getElementById('loginIdentificacion').value;
+        const contrasena = document.getElementById('loginContrasena').value;
+
+        fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tipo, identificacion, contrasena })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    loginMensaje.textContent = data.error;
+                    loginMensaje.style.color = 'red';
+                } else {
+                    usuarioTipo = tipo;
+                    usuarioId = data.id;
+                    loginMensaje.textContent = '';
+                    mostrarMenuSegunUsuario();
+                }
+            })
+            .catch(err => {
+                loginMensaje.textContent = 'Error de conexión';
+                loginMensaje.style.color = 'red';
+                console.error(err);
+            });
+    });
+
+    // Logout
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            usuarioTipo = null;
+            usuarioId = null;
+            iniciarSesion();
+        });
+    }
+
+    // Funciones fetch para cargar datos (sin cambio respecto a tu código previo)
+
     function fetchDoctors() {
         fetch('/doctores')
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 const list = document.getElementById('doctorList');
                 list.innerHTML = '';
                 data.forEach(doc => {
                     const li = document.createElement('li');
+                    li.classList.add('list-group-item');
                     li.textContent = `${doc.nombre} ${doc.apellido} - Especialidad: ${doc.especialidad}`;
                     list.appendChild(li);
                 });
             })
-            .catch(error => console.error('Error:', error));
+            .catch(e => console.error(e));
     }
 
-    // Cargar lista de pacientes
     function fetchPatients() {
         fetch('/pacientes')
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 const list = document.getElementById('patientList');
                 list.innerHTML = '';
                 data.forEach(pac => {
                     const li = document.createElement('li');
+                    li.classList.add('list-group-item');
                     li.textContent = `${pac.nombre} ${pac.apellido} - Tipo Afiliación: ${pac.tipo_afiliacion}`;
                     list.appendChild(li);
                 });
             })
-            .catch(error => console.error('Error:', error));
+            .catch(e => console.error(e));
     }
 
-    // Cargar lista de citas
     function fetchCitas() {
         fetch('/citas')
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 const list = document.getElementById('citaList');
                 list.innerHTML = '';
                 data.forEach(cita => {
                     const li = document.createElement('li');
+                    li.classList.add('list-group-item');
                     li.textContent = `Cita ID: ${cita.id_cita} - Paciente: ${cita.paciente} - Doctor: ${cita.doctor} - Unidad: ${cita.unidad} - Fecha: ${cita.fecha_cita} - Hora: ${cita.hora_cita}`;
                     list.appendChild(li);
                 });
             })
-            .catch(error => console.error('Error:', error));
+            .catch(e => console.error(e));
     }
 
-    // Cargar lista de consultas
     function fetchConsultas() {
         fetch('/consultas')
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 const list = document.getElementById('consultaList');
                 list.innerHTML = '';
                 data.forEach(consulta => {
                     const li = document.createElement('li');
+                    li.classList.add('list-group-item');
                     li.textContent = `Consulta ID: ${consulta.id_consulta} - Paciente: ${consulta.paciente} - Doctor: ${consulta.doctor} - Fecha Atención: ${consulta.fecha_atencion} - Síntomas: ${consulta.sintomas} - Tratamiento: ${consulta.tratamiento}`;
                     list.appendChild(li);
                 });
             })
-            .catch(error => console.error('Error:', error));
+            .catch(e => console.error(e));
     }
 
-    // Formulario paciente
+    function fetchUnidades() {
+        fetch('/unidades')
+            .then(res => res.json())
+            .then(data => {
+                const list = document.getElementById('unidadList');
+                list.innerHTML = '';
+                data.forEach(unidad => {
+                    const li = document.createElement('li');
+                    li.classList.add('list-group-item');
+                    li.textContent = `ID: ${unidad.id_unidad} - ${unidad.nombre} - Planta: ${unidad.planta} - Doctor responsable ID: ${unidad.id_doctor_responsable}`;
+                    list.appendChild(li);
+                });
+            })
+            .catch(err => console.error(err));
+    }
+
+    // Manejo formularios crear paciente, doctor, cita, consulta, unidad (sin cambios)
+
     const formPaciente = document.getElementById('formPaciente');
     const mensajePaciente = document.getElementById('mensajePaciente');
-    formPaciente.addEventListener('submit', function(event) {
-        event.preventDefault();
+    formPaciente.addEventListener('submit', e => {
+        e.preventDefault();
         const data = {
             identificacion: document.getElementById('identificacion').value,
             nombre: document.getElementById('nombre').value,
@@ -86,28 +201,27 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         fetch('/pacientes', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         })
-        .then(response => {
-            if(response.ok) {
-                mensajePaciente.textContent = 'Paciente guardado exitosamente.';
-                formPaciente.reset();
-            } else {
-                mensajePaciente.textContent = 'Error al guardar paciente.';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            mensajePaciente.textContent = 'Error de conexión.';
-        });
+            .then(response => {
+                if (response.ok) {
+                    mensajePaciente.textContent = 'Paciente guardado exitosamente.';
+                    formPaciente.reset();
+                } else {
+                    mensajePaciente.textContent = 'Error al guardar paciente.';
+                }
+            })
+            .catch(err => {
+                mensajePaciente.textContent = 'Error de conexión.';
+                console.error(err);
+            });
     });
 
-    // Formulario doctor
     const formDoctor = document.getElementById('formDoctor');
     const mensajeDoctor = document.getElementById('mensajeDoctor');
-    formDoctor.addEventListener('submit', function(event) {
-        event.preventDefault();
+    formDoctor.addEventListener('submit', e => {
+        e.preventDefault();
         const data = {
             identificacion: document.getElementById('docIdentificacion').value,
             nombre: document.getElementById('docNombre').value,
@@ -120,28 +234,27 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         fetch('/doctores', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         })
-        .then(response => {
-            if(response.ok) {
-                mensajeDoctor.textContent = 'Doctor guardado exitosamente.';
-                formDoctor.reset();
-            } else {
-                mensajeDoctor.textContent = 'Error al guardar doctor.';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            mensajeDoctor.textContent = 'Error de conexión.';
-        });
+            .then(response => {
+                if (response.ok) {
+                    mensajeDoctor.textContent = 'Doctor guardado exitosamente.';
+                    formDoctor.reset();
+                } else {
+                    mensajeDoctor.textContent = 'Error al guardar doctor.';
+                }
+            })
+            .catch(err => {
+                mensajeDoctor.textContent = 'Error de conexión.';
+                console.error(err);
+            });
     });
 
-    // Formulario cita
     const formCita = document.getElementById('formCita');
     const mensajeCita = document.getElementById('mensajeCita');
-    formCita.addEventListener('submit', function(event) {
-        event.preventDefault();
+    formCita.addEventListener('submit', e => {
+        e.preventDefault();
         const data = {
             id_paciente: parseInt(document.getElementById('idPaciente').value),
             id_doctor: parseInt(document.getElementById('idDoctor').value),
@@ -151,30 +264,29 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         fetch('/citas', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         })
-        .then(response => {
-            if(response.ok) {
-                mensajeCita.textContent = 'Cita guardada exitosamente.';
-                formCita.reset();
-            } else {
-                response.json().then(data => {
-                    mensajeCita.textContent = data.error || 'Error al guardar cita.';
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            mensajeCita.textContent = 'Error de conexión.';
-        });
+            .then(response => {
+                if (response.ok) {
+                    mensajeCita.textContent = 'Cita guardada exitosamente.';
+                    formCita.reset();
+                } else {
+                    response.json().then(data => {
+                        mensajeCita.textContent = data.error || 'Error al guardar cita.';
+                    });
+                }
+            })
+            .catch(err => {
+                mensajeCita.textContent = 'Error de conexión.';
+                console.error(err);
+            });
     });
 
-    // Formulario consulta
     const formConsulta = document.getElementById('formConsulta');
     const mensajeConsulta = document.getElementById('mensajeConsulta');
-    formConsulta.addEventListener('submit', function(event) {
-        event.preventDefault();
+    formConsulta.addEventListener('submit', e => {
+        e.preventDefault();
         const data = {
             id_cita: parseInt(document.getElementById('idCita').value),
             fecha_atencion: document.getElementById('fechaAtencion').value,
@@ -183,62 +295,127 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         fetch('/consultas', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         })
-        .then(response => {
-            if(response.ok) {
-                mensajeConsulta.textContent = 'Consulta registrada exitosamente.';
-                formConsulta.reset();
-            } else {
-                mensajeConsulta.textContent = 'Error al registrar consulta.';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            mensajeConsulta.textContent = 'Error de conexión.';
-        });
+            .then(response => {
+                if (response.ok) {
+                    mensajeConsulta.textContent = 'Consulta registrada exitosamente.';
+                    formConsulta.reset();
+                } else {
+                    mensajeConsulta.textContent = 'Error al registrar consulta.';
+                }
+            })
+            .catch(err => {
+                mensajeConsulta.textContent = 'Error de conexión.';
+                console.error(err);
+            });
     });
 
-      // Nueva funcionalidad: consultar citas por doctor y fecha
+    const formUnidad = document.getElementById('formUnidad');
+    const mensajeUnidad = document.getElementById('mensajeUnidad');
+    formUnidad.addEventListener('submit', e => {
+        e.preventDefault();
+        const data = {
+            nombre: document.getElementById('unidadNombre').value,
+            planta: document.getElementById('unidadPlanta').value,
+            id_doctor_responsable: parseInt(document.getElementById('unidadDoctorId').value)
+        };
+        fetch('/unidades', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+            .then(response => {
+                if (response.ok) {
+                    mensajeUnidad.textContent = 'Unidad guardada exitosamente.';
+                    formUnidad.reset();
+                } else {
+                    mensajeUnidad.textContent = 'Error al guardar unidad.';
+                }
+            })
+            .catch(err => {
+                mensajeUnidad.textContent = 'Error de conexión.';
+                console.error(err);
+            });
+    });
+
+    // Historia clínica
+    const formHistoriaClinica = document.getElementById('formHistoriaClinica');
+    const listaHistoriaClinica = document.getElementById('listaHistoriaClinica');
+    formHistoriaClinica.addEventListener('submit', e => {
+        e.preventDefault();
+        const idPaciente = document.getElementById('historiaPacienteId').value;
+        fetch(`/historia_clinica/${idPaciente}`)
+            .then(res => res.json())
+            .then(data => {
+                listaHistoriaClinica.innerHTML = '';
+                if (data.error) {
+                    listaHistoriaClinica.innerHTML = `<li class="list-group-item text-danger">Error: ${data.error}</li>`;
+                    return;
+                }
+                if (data.length === 0) {
+                    listaHistoriaClinica.innerHTML = '<li class="list-group-item">No se encontraron registros para este paciente.</li>';
+                    return;
+                }
+                data.forEach(reg => {
+                    const li = document.createElement('li');
+                    li.classList.add('list-group-item');
+                    li.innerHTML = `
+            <strong>Fecha Atención:</strong> ${reg.fecha_atencion} <br>
+            <strong>Doctor:</strong> ${reg.doctor_nombre} ${reg.doctor_apellido} <br>
+            <strong>Unidad:</strong> ${reg.unidad_nombre} <br>
+            <strong>Síntomas:</strong> ${reg.sintomas} <br>
+            <strong>Tratamiento:</strong> ${reg.tratamiento}
+          `;
+                    listaHistoriaClinica.appendChild(li);
+                });
+            })
+            .catch(err => {
+                listaHistoriaClinica.innerHTML = `<li class="list-group-item text-danger">Error de conexión: ${err}</li>`;
+            });
+    });
+
+    // Consultar citas por doctor y fecha
     const formConsultarCitas = document.getElementById('formConsultarCitas');
     const listaCitasDoctor = document.getElementById('listaCitasDoctor');
-
-    formConsultarCitas.addEventListener('submit', function(event) {
-        event.preventDefault();
+    formConsultarCitas.addEventListener('submit', e => {
+        e.preventDefault();
         const idDoctor = document.getElementById('doctorIdConsulta').value;
         const fecha = document.getElementById('fechaConsulta').value;
-
         fetch(`/citas/doctor/${idDoctor}/fecha/${fecha}`)
-        .then(response => response.json())
-        .then(data => {
-            listaCitasDoctor.innerHTML = '';
-            if (data.error) {
-                listaCitasDoctor.innerHTML = `<li>Error: ${data.error}</li>`;
-                return;
-            }
-            if (data.length === 0) {
-                listaCitasDoctor.innerHTML = '<li>No hay citas para esa fecha.</li>';
-                return;
-            }
-            data.forEach(cita => {
-                const li = document.createElement('li');
-                li.textContent = `Cita ${cita.id_cita}: Paciente ${cita.paciente_nombre} ${cita.paciente_apellido}, Unidad: ${cita.unidad_nombre}, Hora: ${cita.hora_cita}`;
-                listaCitasDoctor.appendChild(li);
+            .then(res => res.json())
+            .then(data => {
+                listaCitasDoctor.innerHTML = '';
+                if (data.error) {
+                    listaCitasDoctor.innerHTML = `<li class="list-group-item text-danger">Error: ${data.error}</li>`;
+                    return;
+                }
+                if (data.length === 0) {
+                    listaCitasDoctor.innerHTML = '<li class="list-group-item">No hay citas para esa fecha.</li>';
+                    return;
+                }
+                data.forEach(cita => {
+                    const li = document.createElement('li');
+                    li.classList.add('list-group-item');
+                    li.textContent = `Cita ${cita.id_cita}: Paciente ${cita.paciente_nombre} ${cita.paciente_apellido}, Unidad: ${cita.unidad_nombre}, Hora: ${cita.hora_cita}`;
+                    listaCitasDoctor.appendChild(li);
+                });
+            })
+            .catch(err => {
+                listaCitasDoctor.innerHTML = `<li class="list-group-item text-danger">Error de conexión: ${err}</li>`;
             });
-        })
-        .catch(error => {
-            listaCitasDoctor.innerHTML = `<li>Error de conexión: ${error}</li>`;
-        });
     });
 
-
-    // Exponer funciones globalmente para el HTML
+    // Exponer funciones globales para HTML
     window.showSection = showSection;
     window.fetchDoctors = fetchDoctors;
     window.fetchPatients = fetchPatients;
     window.fetchCitas = fetchCitas;
     window.fetchConsultas = fetchConsultas;
+    window.fetchHistoriaClinica = () => formHistoriaClinica.dispatchEvent(new Event('submit'));
+    window.fetchCitasPorDoctor = () => formConsultarCitas.dispatchEvent(new Event('submit'));
+    window.fetchUnidades = fetchUnidades;
 
     // Mostrar sección por defecto
     showSection('doctores');

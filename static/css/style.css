@@ -1,0 +1,30 @@
+/* style.css */
+
+body, html {
+  height: 100%;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-image: url('/imagenes/fondo.webp');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-attachment: fixed;
+  color: #fff; /* texto blanco para que contraste */
+}
+
+.content-section {
+  background-color: rgba(130, 140, 142, 0.6); /* fondo semitransparente para legibilidad */
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+/* Ajuste para formularios y botones si usas Bootstrap */
+.btn-success, .btn-primary {
+  border-radius: 5px;
+}
+
+/* Otros ajustes para que el texto sea visible */
+h2, label {
+  color: #fff;
+}
